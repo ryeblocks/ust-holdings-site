@@ -1,0 +1,6 @@
+# Local publish helpers / OS junk
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
