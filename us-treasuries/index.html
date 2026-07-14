@@ -165,62 +165,6 @@
     .chart-wrap { position: relative; width: 100%; }
     .chart-wrap.bar { height: min(620px, calc(25px * 23 + 70px)); }
     .chart-wrap.area { height: 440px; }
-    .chart-tooltip-panel {
-      position: fixed;
-      z-index: 40;
-      pointer-events: auto;
-      max-width: min(320px, calc(100vw - 16px));
-      max-height: min(58vh, 420px);
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(20, 32, 28, 0.14);
-      background: rgba(255, 255, 255, 0.97);
-      box-shadow: 0 14px 36px rgba(20, 32, 28, 0.18);
-      color: var(--ink);
-      font-size: .78rem;
-      line-height: 1.35;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity .12s ease;
-    }
-    .chart-tooltip-panel.visible {
-      opacity: 1;
-      visibility: visible;
-    }
-    .chart-tooltip-panel .tt-title {
-      font-weight: 700;
-      font-size: .8rem;
-      margin: 0 0 8px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--line);
-    }
-    .chart-tooltip-panel .tt-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 2px 0;
-      font-variant-numeric: tabular-nums;
-    }
-    .chart-tooltip-panel .tt-row.bold { font-weight: 700; }
-    .chart-tooltip-panel .tt-name {
-      min-width: 0;
-      color: var(--muted);
-    }
-    .chart-tooltip-panel .tt-val {
-      flex: 0 0 auto;
-      font-weight: 600;
-      color: var(--ink);
-    }
-    .chart-tooltip-panel .tt-foot {
-      margin-top: 8px;
-      padding-top: 6px;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font-size: .72rem;
-    }
     table { width: 100%; border-collapse: collapse; font-size: .9rem; }
     th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; }
     th {
@@ -389,12 +333,7 @@
       }
       .chart-card { padding: 12px 10px 8px; }
       .chart-wrap.bar { height: calc(30px * 23 + 90px); max-height: none; }
-      .chart-wrap.area { height: 460px; }
-      .chart-tooltip-panel {
-        max-width: calc(100vw - 20px);
-        max-height: min(62vh, 460px);
-        font-size: .74rem;
-      }
+      .chart-wrap.area { height: 420px; }
       .toolbar {
         flex-direction: column;
         align-items: stretch;
@@ -512,7 +451,6 @@
       </header>
       <div class="chart-card">
         <div class="chart-wrap bar"><canvas id="holdersChart"></canvas></div>
-        <div id="holdersTooltip" class="chart-tooltip-panel" role="tooltip" hidden></div>
       </div>
       <div class="panel holders-panel">
         <table class="holders-table">
@@ -544,7 +482,6 @@
           <button type="button" class="toggle" data-area-mode="pct">% of foreign total</button>
         </div>
         <div class="chart-wrap area"><canvas id="areaChart"></canvas></div>
-        <div id="areaTooltip" class="chart-tooltip-panel" role="tooltip" hidden></div>
       </div>
     </section>
 
@@ -643,9 +580,13 @@
       'Hong Kong': 'Hong Kong',
     };
     const shortLabel = (name) => {
-      if (!isMobile()) return name;
       if (SHORT_LABELS[name]) return SHORT_LABELS[name];
+      if (!isMobile()) return name;
       return name.length > 16 ? name.slice(0, 14) + '…' : name;
+    };
+    const tipLabel = (name) => {
+      if (SHORT_LABELS[name]) return SHORT_LABELS[name];
+      return name.length > 18 ? name.slice(0, 16) + '…' : name;
     };
 
     function preloadFlags() {
@@ -663,7 +604,7 @@
 
     const holderFlagsPlugin = {
       id: 'holderFlags',
-      // Draw under Chart.js tooltip / overlays so flags never poke through hover UI.
+      // Draw under Chart.js tooltip so flags never poke through hover UI.
       afterDatasetsDraw(chart) {
         const yAxis = chart.scales.y;
         if (!yAxis) return;
@@ -687,55 +628,20 @@
       },
     };
 
-    function placeTooltipEl(el, caretX, caretY, canvas) {
-      const rect = canvas.getBoundingClientRect();
-      el.hidden = false;
-      el.classList.add('visible');
-      el.style.left = '0px';
-      el.style.top = '0px';
-      const tipW = el.offsetWidth;
-      const tipH = el.offsetHeight;
-      let left = rect.left + caretX + 12;
-      let top = rect.top + caretY + 12;
-      const pad = 8;
-      if (left + tipW > window.innerWidth - pad) left = rect.left + caretX - tipW - 12;
-      if (left < pad) left = pad;
-      if (top + tipH > window.innerHeight - pad) top = window.innerHeight - tipH - pad;
-      if (top < pad) top = pad;
-      el.style.left = left + 'px';
-      el.style.top = top + 'px';
-    }
-
-    function hideTooltipEl(el) {
-      el.classList.remove('visible');
-      el.hidden = true;
-    }
-
-    const holdersTooltipEl = document.getElementById('holdersTooltip');
-    const holdersExternalTooltip = (context) => {
-      const { chart, tooltip } = context;
-      if (!tooltip || tooltip.opacity === 0 || !tooltip.dataPoints || !tooltip.dataPoints.length) {
-        hideTooltipEl(holdersTooltipEl);
-        return;
-      }
-      const h = holders[tooltip.dataPoints[0].dataIndex];
-      if (!h) { hideTooltipEl(holdersTooltipEl); return; }
-      const lines = [
-        money(h.value) + '  (' + pct(h.pct) + ' of foreign total)',
-      ];
-      if (h.kind === 'tokenized_assets') {
-        lines.push('Stablecoins (ex-rehyp): ' + money(h.stablecoin || 0));
-        lines.push('Tokenized treasuries: ' + money(h.tokenized || 0));
-      }
-      let source = 'Source: TIC Major Foreign Holders';
-      if (h.kind === 'tokenized_assets') source = 'Source: Attestation reports + RWA.xyz';
-      else if (h.kind === 'stablecoins') source = 'Source: Attestation reports';
-      else if (h.kind === 'tokenized_treasuries') source = 'Source: RWA.xyz';
-      holdersTooltipEl.innerHTML =
-        '<div class="tt-title">' + (h.bold ? '● ' : '') + h.name + '</div>' +
-        lines.map((line) => '<div class="tt-row"><span class="tt-name">' + line + '</span></div>').join('') +
-        '<div class="tt-foot">TIC foreign total: ' + moneyB(DATA.foreignGrandTotal) + '<br/>' + source + '</div>';
-      placeTooltipEl(holdersTooltipEl, tooltip.caretX, tooltip.caretY, chart.canvas);
+    const chartTooltipStyle = {
+      backgroundColor: 'rgba(15, 24, 22, 0.92)',
+      titleColor: '#fff',
+      bodyColor: '#fff',
+      footerColor: 'rgba(255,255,255,0.75)',
+      borderColor: 'rgba(255,255,255,0.08)',
+      borderWidth: 1,
+      cornerRadius: 8,
+      padding: isMobile() ? 8 : 10,
+      boxPadding: 4,
+      displayColors: true,
+      titleFont: { family: 'Outfit, sans-serif', size: isMobile() ? 11 : 12, weight: '600' },
+      bodyFont: { family: 'Outfit, sans-serif', size: isMobile() ? 10 : 11 },
+      footerFont: { family: 'Outfit, sans-serif', size: isMobile() ? 9 : 10 },
     };
 
     const holdersChart = new Chart(holdersCtx, {
@@ -762,8 +668,41 @@
         plugins: {
           legend: { display: false },
           tooltip: {
-            enabled: false,
-            external: holdersExternalTooltip,
+            ...chartTooltipStyle,
+            position: 'cursor',
+            caretPadding: 8,
+            callbacks: {
+              title: (items) => {
+                const h = holders[items[0].dataIndex];
+                return (h.bold ? '● ' : '') + h.name;
+              },
+              label: (item) => {
+                const h = holders[item.dataIndex];
+                const lines = [
+                  moneyB(h.value) + '  (' + pct(h.pct) + ' of foreign)',
+                ];
+                if (h.kind === 'tokenized_assets') {
+                  lines.push('Stablecoins (ex-rehyp): ' + moneyB(h.stablecoin || 0));
+                  lines.push('Tokenized treasuries: ' + moneyB(h.tokenized || 0));
+                }
+                return lines;
+              },
+              footer: (items) => {
+                const h = holders[items[0].dataIndex];
+                let source = 'Source: TIC Major Foreign Holders';
+                if (h.kind === 'tokenized_assets') {
+                  source = 'Source: Attestation reports + RWA.xyz';
+                } else if (h.kind === 'stablecoins') {
+                  source = 'Source: Attestation reports';
+                } else if (h.kind === 'tokenized_treasuries') {
+                  source = 'Source: RWA.xyz';
+                }
+                return [
+                  'TIC foreign total: ' + moneyB(DATA.foreignGrandTotal),
+                  source,
+                ];
+              },
+            },
           },
         },
         scales: {
@@ -856,38 +795,10 @@
       return out;
     }
 
-    const areaTooltipEl = document.getElementById('areaTooltip');
-    const areaExternalTooltip = (context) => {
-      const { chart, tooltip } = context;
-      if (!tooltip || tooltip.opacity === 0 || !tooltip.dataPoints || !tooltip.dataPoints.length) {
-        hideTooltipEl(areaTooltipEl);
-        return;
-      }
-      const points = tooltip.dataPoints
-        .slice()
-        .sort((a, b) => Number(b.parsed.y || 0) - Number(a.parsed.y || 0));
-      const idx = points[0].dataIndex;
-      const title = area.labels[idx] || '';
-      const rows = points.map((item) => {
-        const ds = item.dataset;
-        const name = (ds._bold ? '● ' : '') + (isMobile() ? shortLabel(ds.label) : ds.label);
-        const val = areaMode.current === 'pct' ? pct(item.parsed.y) : moneyB(item.parsed.y);
-        return '<div class="tt-row' + (ds._bold ? ' bold' : '') + '">' +
-          '<span class="tt-name">' + name + '</span>' +
-          '<span class="tt-val">' + val + '</span></div>';
-      }).join('');
-      let foot = '';
-      if (areaMode.current === 'pct') {
-        const ft = Number((area.foreignTotals || [])[idx] || 0);
-        foot = 'TIC foreign total: ' + moneyB(ft);
-      } else {
-        const total = points.reduce((s, it) => s + Number(it.parsed.y || 0), 0);
-        foot = 'Visible stack: ' + moneyB(total);
-      }
-      areaTooltipEl.innerHTML =
-        '<div class="tt-title">' + title + '</div>' + rows +
-        '<div class="tt-foot">' + foot + '</div>';
-      placeTooltipEl(areaTooltipEl, tooltip.caretX, tooltip.caretY, chart.canvas);
+    // Keep tooltips beside the pointer and inside the canvas (Chart.js default
+    // average position drifts away on stacked area charts).
+    Chart.Tooltip.positioners.cursor = function (items, eventPosition) {
+      return eventPosition || { x: 0, y: 0 };
     };
 
     const areaChart = new Chart(document.getElementById('areaChart'), {
@@ -915,7 +826,7 @@
                 items.forEach((item) => {
                   const ds = chart.data.datasets[item.datasetIndex];
                   if (ds && ds._bold) {
-                    item.text = '● ' + (isMobile() ? shortLabel(ds.label) : item.text);
+                    item.text = '● ' + (isMobile() ? shortLabel(ds.label) : ds.label);
                   } else if (isMobile()) {
                     item.text = shortLabel(item.text);
                   }
@@ -925,8 +836,35 @@
             },
           },
           tooltip: {
-            enabled: false,
-            external: areaExternalTooltip,
+            ...chartTooltipStyle,
+            position: 'cursor',
+            caretPadding: 10,
+            itemSort: (a, b) => Number(b.parsed.y || 0) - Number(a.parsed.y || 0),
+            bodySpacing: isMobile() ? 1 : 2,
+            boxWidth: isMobile() ? 8 : 10,
+            boxHeight: isMobile() ? 8 : 10,
+            callbacks: {
+              title: (items) => items.length ? items[0].label : '',
+              label: (item) => {
+                const ds = item.dataset;
+                const prefix = ds._bold ? '● ' : '';
+                const name = tipLabel(ds.label);
+                if (areaMode.current === 'pct') {
+                  return prefix + name + ': ' + pct(item.parsed.y);
+                }
+                return prefix + name + ': ' + moneyB(item.parsed.y);
+              },
+              footer: (items) => {
+                if (!items.length) return '';
+                const idx = items[0].dataIndex;
+                if (areaMode.current === 'pct') {
+                  const ft = Number((area.foreignTotals || [])[idx] || 0);
+                  return 'TIC foreign total: ' + moneyB(ft);
+                }
+                const total = items.reduce((s, it) => s + Number(it.parsed.y || 0), 0);
+                return 'Visible stack: ' + moneyB(total);
+              },
+            },
           },
         },
         scales: {
@@ -976,13 +914,6 @@
     document.querySelectorAll('[data-area-mode]').forEach((btn) => {
       btn.addEventListener('click', () => setAreaMode(btn.getAttribute('data-area-mode')));
     });
-    document.addEventListener('scroll', (event) => {
-      const t = event.target;
-      if (t === holdersTooltipEl || t === areaTooltipEl) return;
-      if (holdersTooltipEl.contains(t) || areaTooltipEl.contains(t)) return;
-      hideTooltipEl(holdersTooltipEl);
-      hideTooltipEl(areaTooltipEl);
-    }, true);
   })();
   </script>
 </body>

@@ -340,6 +340,25 @@
       },
     };
 
+    const chartTooltipStyle = {
+      backgroundColor: 'rgba(15, 24, 22, 0.92)',
+      titleColor: '#fff',
+      bodyColor: '#fff',
+      footerColor: 'rgba(255,255,255,0.75)',
+      borderColor: 'rgba(255,255,255,0.08)',
+      borderWidth: 1,
+      cornerRadius: 8,
+      padding: 10,
+      boxPadding: 4,
+      displayColors: true,
+      titleFont: { family: 'Outfit, sans-serif', size: 12, weight: '600' },
+      bodyFont: { family: 'Outfit, sans-serif', size: 11 },
+      footerFont: { family: 'Outfit, sans-serif', size: 10 },
+    };
+    Chart.Tooltip.positioners.cursor = function (items, eventPosition) {
+      return eventPosition || { x: 0, y: 0 };
+    };
+
     const chart = new Chart(document.getElementById('m2Chart'), {
       type: 'line',
       plugins: [zeroLinePlugin],
@@ -376,6 +395,9 @@
         plugins: {
           legend: { position: 'bottom' },
           tooltip: {
+            ...chartTooltipStyle,
+            position: 'cursor',
+            caretPadding: 8,
             callbacks: {
               label: (item) => {
                 if (mode === 'pct') return item.dataset.label + ': ' + pct(item.parsed.y);
@@ -554,6 +576,9 @@
         plugins: {
           legend: { position: 'bottom' },
           tooltip: {
+            ...chartTooltipStyle,
+            position: 'cursor',
+            caretPadding: 8,
             callbacks: {
               label: (item) => {
                 const i = item.dataIndex;
