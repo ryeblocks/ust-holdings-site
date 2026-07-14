@@ -174,26 +174,31 @@
     .num { text-align: right; font-variant-numeric: tabular-nums; }
     th.num { text-align: right; }
     tr.highlight td { background: rgba(255, 79, 26, 0.12); font-weight: 700; }
-    .holders-table { table-layout: fixed; }
+    .holders-table {
+      table-layout: auto;
+      width: max-content;
+      min-width: 100%;
+    }
     .holders-table th,
     .holders-table td {
       padding: 14px 18px;
       vertical-align: middle;
       line-height: 1.35;
+      white-space: nowrap;
     }
     .holders-table th:nth-child(1),
-    .holders-table td:nth-child(1) { width: 44%; white-space: normal; word-break: break-word; }
+    .holders-table td:nth-child(1) { min-width: 11rem; }
     .holders-table th:nth-child(2),
-    .holders-table td:nth-child(2) { width: 14%; white-space: nowrap; }
+    .holders-table td:nth-child(2) { min-width: 6.5rem; }
     .holders-table th:nth-child(3),
-    .holders-table td:nth-child(3) { width: 26%; white-space: nowrap; }
+    .holders-table td:nth-child(3) { min-width: 9.5rem; }
     .holders-table th:nth-child(4),
-    .holders-table td:nth-child(4) { width: 16%; white-space: nowrap; }
+    .holders-table td:nth-child(4) { min-width: 9rem; }
     .holders-table th:nth-child(3),
     .holders-table th:nth-child(4) { text-align: right; }
     .holder-name {
       display: inline-flex; align-items: center; gap: 10px;
-      min-width: 0;
+      white-space: nowrap;
     }
     .holder-flag {
       width: 20px; height: 13px; flex: 0 0 auto;
@@ -201,7 +206,12 @@
       border-radius: 2px;
       object-fit: cover;
     }
-    .holders-panel { margin-top: 16px; max-height: none; }
+    .holders-panel {
+      margin-top: 16px;
+      max-height: none;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
     .callout {
       width: 100%;
       margin: 8px 0 20px;
@@ -336,21 +346,16 @@
         border-radius: 14px;
       }
       table { font-size: .78rem; }
-      th, td { padding: 10px 10px; }
+      th, td { padding: 10px 12px; }
       .holders-table th,
-      .holders-table td { padding: 10px 10px; }
-      .holders-table th:nth-child(2),
-      .holders-table td:nth-child(2),
-      .holders-table th:nth-child(3),
-      .holders-table td:nth-child(3),
-      .holders-table th:nth-child(4),
-      .holders-table td:nth-child(4) {
-        white-space: normal;
-        overflow-wrap: anywhere;
-        word-break: break-word;
+      .holders-table td {
+        padding: 12px 14px;
+        white-space: nowrap;
       }
-      .holders-table th:nth-child(1),
-      .holders-table td:nth-child(1) { width: 38%; }
+      .holders-panel {
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+      }
       .feature-card, .note, .defs { padding: 16px; }
       .pill { font-size: .8rem; padding: 7px 10px; }
       .footer-note { font-size: .8rem; }
@@ -450,7 +455,7 @@
       <div class="panel holders-panel">
         <table class="holders-table">
           <thead>
-            <tr><th>Holder</th><th>As-of</th><th class="num">USD</th><th class="num">% of foreign total</th></tr>
+            <tr><th>Holder</th><th>As-of</th><th class="num">USD</th><th class="num">% of foreign</th></tr>
           </thead>
           <tbody><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/jp.png' alt='' width='20' height='13' loading='lazy' /><span>Japan</span></span></td><td>2026-04-30</td><td class='num'>$1,209,900,000,000</td><td class='num'>12.94%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/gb.png' alt='' width='20' height='13' loading='lazy' /><span>United Kingdom</span></span></td><td>2026-04-30</td><td class='num'>$937,500,000,000</td><td class='num'>10.02%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/cn.png' alt='' width='20' height='13' loading='lazy' /><span>China, Mainland</span></span></td><td>2026-04-30</td><td class='num'>$651,100,000,000</td><td class='num'>6.96%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/ky.png' alt='' width='20' height='13' loading='lazy' /><span>Cayman Islands</span></span></td><td>2026-04-30</td><td class='num'>$471,600,000,000</td><td class='num'>5.04%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/be.png' alt='' width='20' height='13' loading='lazy' /><span>Belgium</span></span></td><td>2026-04-30</td><td class='num'>$459,900,000,000</td><td class='num'>4.92%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/lu.png' alt='' width='20' height='13' loading='lazy' /><span>Luxembourg</span></span></td><td>2026-04-30</td><td class='num'>$431,100,000,000</td><td class='num'>4.61%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/ca.png' alt='' width='20' height='13' loading='lazy' /><span>Canada</span></span></td><td>2026-04-30</td><td class='num'>$397,100,000,000</td><td class='num'>4.25%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/fr.png' alt='' width='20' height='13' loading='lazy' /><span>France</span></span></td><td>2026-04-30</td><td class='num'>$393,300,000,000</td><td class='num'>4.21%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/ie.png' alt='' width='20' height='13' loading='lazy' /><span>Ireland</span></span></td><td>2026-04-30</td><td class='num'>$345,300,000,000</td><td class='num'>3.69%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/tw.png' alt='' width='20' height='13' loading='lazy' /><span>Taiwan</span></span></td><td>2026-04-30</td><td class='num'>$300,900,000,000</td><td class='num'>3.22%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/ch.png' alt='' width='20' height='13' loading='lazy' /><span>Switzerland</span></span></td><td>2026-04-30</td><td class='num'>$288,600,000,000</td><td class='num'>3.09%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/sg.png' alt='' width='20' height='13' loading='lazy' /><span>Singapore</span></span></td><td>2026-04-30</td><td class='num'>$277,500,000,000</td><td class='num'>2.97%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/hk.png' alt='' width='20' height='13' loading='lazy' /><span>Hong Kong</span></span></td><td>2026-04-30</td><td class='num'>$269,100,000,000</td><td class='num'>2.88%</td></tr><tr class='highlight'><td>Tokenized Assets (stablecoins + tokenized treasuries)</td><td>2026-07-12</td><td class='num'>$233,727,053,271</td><td class='num'>2.50%</td></tr><tr class='highlight'><td>Stablecoins (ex-rehyp)</td><td>2026-05-31</td><td class='num'>$218,221,050,665</td><td class='num'>2.33%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/no.png' alt='' width='20' height='13' loading='lazy' /><span>Norway</span></span></td><td>2026-04-30</td><td class='num'>$214,700,000,000</td><td class='num'>2.30%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/in.png' alt='' width='20' height='13' loading='lazy' /><span>India</span></span></td><td>2026-04-30</td><td class='num'>$181,000,000,000</td><td class='num'>1.94%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/br.png' alt='' width='20' height='13' loading='lazy' /><span>Brazil</span></span></td><td>2026-04-30</td><td class='num'>$168,600,000,000</td><td class='num'>1.80%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/sa.png' alt='' width='20' height='13' loading='lazy' /><span>Saudi Arabia</span></span></td><td>2026-04-30</td><td class='num'>$140,100,000,000</td><td class='num'>1.50%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/kr.png' alt='' width='20' height='13' loading='lazy' /><span>Korea, South</span></span></td><td>2026-04-30</td><td class='num'>$135,200,000,000</td><td class='num'>1.45%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/il.png' alt='' width='20' height='13' loading='lazy' /><span>Israel</span></span></td><td>2026-04-30</td><td class='num'>$113,400,000,000</td><td class='num'>1.21%</td></tr><tr><td><span class='holder-name'><img class='holder-flag' src='https://flagcdn.com/w40/ae.png' alt='' width='20' height='13' loading='lazy' /><span>United Arab Emirates</span></span></td><td>2026-04-30</td><td class='num'>$112,500,000,000</td><td class='num'>1.20%</td></tr><tr class='highlight'><td>Tokenized Treasuries</td><td>2026-07-12</td><td class='num'>$15,506,002,606</td><td class='num'>0.17%</td></tr></tbody>
         </table>
