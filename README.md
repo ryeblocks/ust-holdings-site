@@ -15,6 +15,14 @@ Mirror of `app/` for Netlify (or Vercel). Showcase HTML only — no local resear
 3. After deploy, add custom domain (e.g. `macrorwa.xyz`) under **Domain management**.
 4. Point DNS at Netlify (easiest: use Netlify DNS, or add the A/CNAME records Netlify shows).
 
+## Deploy (Vercel)
+
+1. In [Vercel](https://vercel.com) → **Add New…** → **Project** → import `ryeblocks/ust-holdings-site`.
+2. Framework Preset: **Other** (static). Leave **Build Command** empty. **Output Directory** blank / `.` (repo root).
+3. Deploy. You’ll get a `*.vercel.app` URL; same `git push` to `main` updates Netlify and Vercel.
+
+`vercel.json` sets trailing slashes + security headers. No app code changes required for dual hosting.
+
 ## Sources (shown in-page)
 
 - TIC Major Foreign Holders
