@@ -445,11 +445,6 @@
         </p>
       </header>
       <div class="chart-card">
-        <div class="toolbar">
-          <div class="spacer"></div>
-          <button type="button" class="toggle active" data-holders-mode="pct">% breakdown</button>
-          <button type="button" class="toggle" data-holders-mode="usd">USD</button>
-        </div>
         <div class="chart-wrap bar"><canvas id="holdersChart"></canvas></div>
       </div>
       <div class="panel holders-panel">
@@ -565,7 +560,6 @@
 
     const holders = DATA.holders;
     const holdersCtx = document.getElementById('holdersChart');
-    let holdersMode = 'pct';
     const flagCache = {};
     const isMobile = () => window.matchMedia('(max-width: 720px)').matches;
     const SHORT_LABELS = {
@@ -627,8 +621,8 @@
       data: {
         labels: holders.map((h) => shortLabel(h.name)),
         datasets: [{
-          label: 'Share',
-          data: holders.map((h) => h.pct),
+          label: 'USD',
+          data: holders.map((h) => h.value),
           backgroundColor: holders.map((h) => h.color),
           borderColor: holders.map((h) => h.bold ? h.color : 'transparent'),
           borderWidth: holders.map((h) => h.bold ? 3 : 0),
@@ -684,11 +678,11 @@
             beginAtZero: true,
             ticks: {
               maxTicksLimit: isMobile() ? 4 : 8,
-              callback: (v) => holdersMode === 'pct' ? v + '%' : moneyB(v),
+              callback: (v) => moneyB(v),
             },
             title: {
               display: !isMobile(),
-              text: '% of foreign total',
+              text: 'USD',
             },
             grid: { color: '#e3ebf0' },
           },
@@ -728,20 +722,6 @@
     });
 
     preloadFlags().then(() => holdersChart.update('none'));
-
-    function setHoldersMode(mode) {
-      holdersMode = mode;
-      const ds = holdersChart.data.datasets[0];
-      ds.data = holders.map((h) => mode === 'pct' ? h.pct : h.value);
-      holdersChart.options.scales.x.title.text = mode === 'pct' ? '% of foreign total' : 'USD';
-      holdersChart.update();
-      document.querySelectorAll('[data-holders-mode]').forEach((btn) => {
-        btn.classList.toggle('active', btn.getAttribute('data-holders-mode') === mode);
-      });
-    }
-    document.querySelectorAll('[data-holders-mode]').forEach((btn) => {
-      btn.addEventListener('click', () => setHoldersMode(btn.getAttribute('data-holders-mode')));
-    });
 
     const area = DATA.area;
     const areaMode = { current: 'usd' };
