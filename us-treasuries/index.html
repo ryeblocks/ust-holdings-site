@@ -594,22 +594,23 @@
     const holderFlagsPlugin = {
       id: 'holderFlags',
       afterDraw(chart) {
-        if (isMobile()) return;
         const yAxis = chart.scales.y;
         if (!yAxis) return;
         const ctx = chart.ctx;
+        const fw = isMobile() ? 16 : 20;
+        const fh = isMobile() ? 11 : 13;
         holders.forEach((h, i) => {
           if (!h.flag) return;
           const img = flagCache[h.flag];
           if (!img || !img.complete) return;
-          const y = yAxis.getPixelForTick(i) - 6.5;
-          const x = yAxis.right - 24;
+          const y = yAxis.getPixelForTick(i) - fh / 2;
+          const x = yAxis.right - (fw + 4);
           ctx.save();
           ctx.globalAlpha = 0.96;
-          ctx.drawImage(img, x, y, 20, 13);
+          ctx.drawImage(img, x, y, fw, fh);
           ctx.strokeStyle = 'rgba(20, 32, 28, 0.14)';
           ctx.lineWidth = 1;
-          ctx.strokeRect(x + 0.5, y + 0.5, 19, 12);
+          ctx.strokeRect(x + 0.5, y + 0.5, fw - 1, fh - 1);
           ctx.restore();
         });
       },
@@ -688,7 +689,7 @@
           },
           y: {
             ticks: {
-              padding: isMobile() ? 4 : 28,
+              padding: isMobile() ? 22 : 28,
               autoSkip: false,
               font: (ctx) => {
                 const h = holders[ctx.index];
@@ -711,7 +712,7 @@
 
     function refreshHoldersLabels() {
       holdersChart.data.labels = holders.map((h) => shortLabel(h.name));
-      holdersChart.options.scales.y.ticks.padding = isMobile() ? 4 : 28;
+      holdersChart.options.scales.y.ticks.padding = isMobile() ? 22 : 28;
       holdersChart.options.scales.x.title.display = !isMobile();
       holdersChart.options.scales.x.ticks.maxTicksLimit = isMobile() ? 4 : 8;
       holdersChart.update('none');
