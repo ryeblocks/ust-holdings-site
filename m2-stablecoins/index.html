@@ -115,6 +115,42 @@
       .counters { grid-template-columns: 1fr; }
       h1 { max-width: none; }
     }
+    @media (max-width: 720px) {
+      html, body { overflow-x: hidden; }
+      main {
+        width: calc(100% - 20px);
+        padding: 20px 0 56px;
+      }
+      .hero { gap: 10px; margin-bottom: 18px; }
+      h1 { font-size: 1.85rem; line-height: 1.12; }
+      .lede { font-size: .95rem; }
+      .counter { padding: 16px; }
+      .counter .value {
+        font-size: 1.28rem;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .counter .sub {
+        font-size: .8rem;
+        overflow-wrap: anywhere;
+      }
+      .chart-card { padding: 12px 10px; }
+      .chart-wrap { height: 280px; }
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .toolbar .spacer { display: none; }
+      .toolbar .chart-sub { font-size: .82rem; }
+      .toggle { width: 100%; text-align: center; }
+      .section { margin-top: 32px; }
+      h2 { font-size: 1.25rem; }
+      .panel { -webkit-overflow-scrolling: touch; }
+      table { font-size: .78rem; }
+      th, td { padding: 10px; }
+      .footer-note { font-size: .8rem; }
+    }
   </style>
 </head>
 <body>

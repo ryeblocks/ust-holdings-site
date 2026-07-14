@@ -48,6 +48,14 @@
       display: inline-block; margin-bottom: 10px; font-size: .75rem; font-weight: 650;
       letter-spacing: .08em; text-transform: uppercase; color: var(--accent);
     }
+    @media (max-width: 720px) {
+      html, body { overflow-x: hidden; }
+      main { width: calc(100% - 24px); padding: 36px 0 64px; }
+      h1 { font-size: 1.9rem; line-height: 1.12; }
+      .lede { font-size: .98rem; margin-bottom: 24px; }
+      a.card { padding: 18px 16px; }
+      a.card h2 { font-size: 1.12rem; }
+    }
   </style>
 </head>
 <body>

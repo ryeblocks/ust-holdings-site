@@ -299,6 +299,62 @@
       .counters, .feature-grid, .def-grid { grid-template-columns: 1fr; }
       h1 { max-width: none; }
     }
+    @media (max-width: 720px) {
+      html, body { overflow-x: hidden; }
+      main {
+        width: calc(100% - 20px);
+        padding: 20px 0 56px;
+      }
+      .hero { gap: 10px; margin-bottom: 18px; }
+      h1 { font-size: 1.85rem; line-height: 1.12; }
+      .lede { font-size: .95rem; }
+      .section { margin-top: 36px; }
+      h2 { font-size: 1.25rem; }
+      .counter { padding: 16px 16px; }
+      .counter .value {
+        font-size: 1.28rem;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .counter .sub {
+        font-size: .8rem;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .chart-card { padding: 12px 10px 8px; }
+      .chart-wrap.bar { height: calc(30px * 23 + 90px); max-height: none; }
+      .chart-wrap.area { height: 300px; }
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .toolbar .spacer { display: none; }
+      .toggle { width: 100%; text-align: center; }
+      .panel {
+        -webkit-overflow-scrolling: touch;
+        border-radius: 14px;
+      }
+      table { font-size: .78rem; }
+      th, td { padding: 10px 10px; }
+      .holders-table th,
+      .holders-table td { padding: 10px 10px; }
+      .holders-table th:nth-child(2),
+      .holders-table td:nth-child(2),
+      .holders-table th:nth-child(3),
+      .holders-table td:nth-child(3),
+      .holders-table th:nth-child(4),
+      .holders-table td:nth-child(4) {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .holders-table th:nth-child(1),
+      .holders-table td:nth-child(1) { width: 38%; }
+      .feature-card, .note, .defs { padding: 16px; }
+      .pill { font-size: .8rem; padding: 7px 10px; }
+      .footer-note { font-size: .8rem; }
+    }
   </style>
 </head>
 <body>
@@ -511,6 +567,24 @@
     const holdersCtx = document.getElementById('holdersChart');
     let holdersMode = 'pct';
     const flagCache = {};
+    const isMobile = () => window.matchMedia('(max-width: 720px)').matches;
+    const SHORT_LABELS = {
+      'Tokenized Assets (stablecoins + tokenized treasuries)': 'Tokenized Assets',
+      'Stablecoins (ex-rehyp)': 'Stablecoins',
+      'Tokenized Treasuries': 'Tok. Treasuries',
+      'United Arab Emirates': 'UAE',
+      'United Kingdom': 'UK',
+      'China, Mainland': 'China',
+      'Korea, South': 'S. Korea',
+      'Cayman Islands': 'Cayman',
+      'Saudi Arabia': 'Saudi',
+      'Hong Kong': 'Hong Kong',
+    };
+    const shortLabel = (name) => {
+      if (!isMobile()) return name;
+      if (SHORT_LABELS[name]) return SHORT_LABELS[name];
+      return name.length > 16 ? name.slice(0, 14) + '…' : name;
+    };
 
     function preloadFlags() {
       const codes = Array.from(new Set(holders.map((h) => h.flag).filter(Boolean)));
@@ -526,6 +600,7 @@
     const holderFlagsPlugin = {
       id: 'holderFlags',
       afterDraw(chart) {
+        if (isMobile()) return;
         const yAxis = chart.scales.y;
         if (!yAxis) return;
         const ctx = chart.ctx;
@@ -550,7 +625,7 @@
       type: 'bar',
       plugins: [holderFlagsPlugin],
       data: {
-        labels: holders.map((h) => h.name),
+        labels: holders.map((h) => shortLabel(h.name)),
         datasets: [{
           label: 'Share',
           data: holders.map((h) => h.pct),
@@ -566,7 +641,7 @@
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        layout: { padding: { top: 4, bottom: 4, left: 4, right: 8 } },
+        layout: { padding: { top: 4, bottom: 4, left: 2, right: 8 } },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -608,22 +683,24 @@
           x: {
             beginAtZero: true,
             ticks: {
+              maxTicksLimit: isMobile() ? 4 : 8,
               callback: (v) => holdersMode === 'pct' ? v + '%' : moneyB(v),
             },
             title: {
-              display: true,
+              display: !isMobile(),
               text: '% of foreign total',
             },
             grid: { color: '#e3ebf0' },
           },
           y: {
             ticks: {
-              padding: 28,
+              padding: isMobile() ? 4 : 28,
+              autoSkip: false,
               font: (ctx) => {
                 const h = holders[ctx.index];
                 return {
                   weight: h && h.bold ? '700' : '400',
-                  size: 11,
+                  size: isMobile() ? 9 : 11,
                   family: 'Outfit, sans-serif',
                 };
               },
@@ -636,6 +713,18 @@
           },
         },
       },
+    });
+
+    function refreshHoldersLabels() {
+      holdersChart.data.labels = holders.map((h) => shortLabel(h.name));
+      holdersChart.options.scales.y.ticks.padding = isMobile() ? 4 : 28;
+      holdersChart.options.scales.x.title.display = !isMobile();
+      holdersChart.options.scales.x.ticks.maxTicksLimit = isMobile() ? 4 : 8;
+      holdersChart.update('none');
+    }
+    window.addEventListener('resize', () => {
+      clearTimeout(window.__holdersResizeTimer);
+      window.__holdersResizeTimer = setTimeout(refreshHoldersLabels, 150);
     });
 
     preloadFlags().then(() => holdersChart.update('none'));
@@ -708,10 +797,15 @@
           legend: {
             position: 'bottom',
             labels: {
-              boxWidth: 12,
-              font: (ctx) => {
-                // Chart.js legend font callback is limited; bold crypto via generateLabels below.
-                return { size: 11, family: 'Outfit, sans-serif' };
+              boxWidth: isMobile() ? 8 : 12,
+              font: {
+                size: isMobile() ? 9 : 11,
+                family: 'Outfit, sans-serif',
+              },
+              filter: (item, chartData) => {
+                if (!isMobile()) return true;
+                const ds = chartData.datasets[item.datasetIndex];
+                return !!(ds && ds._bold);
               },
               generateLabels: (chart) => {
                 const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
@@ -719,7 +813,9 @@
                   const ds = chart.data.datasets[item.datasetIndex];
                   if (ds && ds._bold) {
                     item.fontSafe = { weight: '700' };
-                    item.text = '● ' + item.text;
+                    item.text = '● ' + (isMobile() ? shortLabel(ds.label) : item.text);
+                  } else if (isMobile()) {
+                    item.text = shortLabel(item.text);
                   }
                 });
                 return items;
@@ -728,6 +824,11 @@
           },
           tooltip: {
             itemSort: (a, b) => b.parsed.y - a.parsed.y,
+            filter: (item) => {
+              if (!isMobile()) return true;
+              // On phones, tooltips with 20+ series are unreadable — keep top movers + crypto.
+              return item.parsed.y > 0;
+            },
             callbacks: {
               title: (items) => items.length ? items[0].label : '',
               label: (item) => {
@@ -737,6 +838,10 @@
                   return prefix + ds.label + ': ' + pct(item.parsed.y);
                 }
                 return prefix + ds.label + ': ' + money(item.parsed.y);
+              },
+              afterBody: (items) => {
+                if (!isMobile() || items.length <= 6) return [];
+                return ['…showing largest series; tap another month for detail'];
               },
               footer: (items) => {
                 if (!items.length) return '';
@@ -754,7 +859,7 @@
         scales: {
           x: {
             ticks: {
-              maxTicksLimit: 10,
+              maxTicksLimit: isMobile() ? 5 : 10,
               callback: function (val, idx) {
                 const label = this.getLabelForValue(val);
                 return label ? label.slice(0, 7) : '';
@@ -766,14 +871,29 @@
             stacked: true,
             beginAtZero: true,
             ticks: {
+              maxTicksLimit: isMobile() ? 5 : 8,
               callback: (v) => areaMode.current === 'pct' ? v + '%' : moneyB(v),
             },
-            title: { display: true, text: 'USD' },
+            title: { display: !isMobile(), text: 'USD' },
             grid: { color: '#e3ebf0' },
           },
         },
       },
     });
+
+    // Mobile tooltips: keep only the top 5 series by value + any bold series.
+    const _areaLabelCb = areaChart.options.plugins.tooltip.callbacks.label;
+    areaChart.options.plugins.tooltip.callbacks.label = function (item) {
+      return _areaLabelCb.call(this, item);
+    };
+    areaChart.options.plugins.tooltip.filter = (item, _idx, items) => {
+      if (!isMobile()) return true;
+      const ds = item.dataset;
+      if (ds && ds._bold) return true;
+      const ranked = items.slice().sort((a, b) => b.parsed.y - a.parsed.y);
+      const top = new Set(ranked.slice(0, 5).map((it) => it.datasetIndex));
+      return top.has(item.datasetIndex);
+    };
 
     function setAreaMode(mode) {
       areaMode.current = mode;
