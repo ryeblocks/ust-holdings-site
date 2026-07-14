@@ -1,17 +1,23 @@
-# U.S. Treasury Holdings Dashboard
+# Public static site
 
-Public dashboard comparing TIC major foreign holders of U.S. Treasuries with stablecoin and tokenized U.S. treasury exposure.
+Mirror of `app/` for Netlify (or Vercel). Showcase HTML only — no local research paths, PDFs, or pipeline CSVs with `source_file` columns.
 
-## Sources
+## Pages
 
-- U.S. Treasury TIC Major Foreign Holders
-- Issuer attestation / reserve reports
-- RWA.xyz tokenized treasury market data
+- `/` — overview
+- `/us-treasuries/` — U.S. Treasury holdings dashboard
+- `/m2-stablecoins/` — U.S. M2 vs stablecoin supply
 
-## Deploy
+## Deploy (Netlify)
 
-Static site for Vercel. No build step — `index.html` is the full app.
+1. Connect this GitHub repo in [Netlify](https://app.netlify.com) → **Add new site** → **Import an existing project**.
+2. Build settings: **no build command**; publish directory = `/` (repo root). `netlify.toml` already sets this.
+3. After deploy, add custom domain (e.g. `macrorwa.xyz`) under **Domain management**.
+4. Point DNS at Netlify (easiest: use Netlify DNS, or add the A/CNAME records Netlify shows).
 
-## Update flow
+## Sources (shown in-page)
 
-Rebuild the dashboard locally from the research pipeline, copy the scrubbed HTML to this repo as `index.html`, then push. Vercel redeploys automatically.
+- TIC Major Foreign Holders
+- Issuer attestation reports
+- RWA.xyz
+- FRED M2SL / Federal Reserve H.6 / Fed funds

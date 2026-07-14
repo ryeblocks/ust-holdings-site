@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>U.S. M2 vs Stablecoin Supply</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f6f4; --bg-deep: #e6ece8; --ink: #14201c; --muted: #5a6b64;
+      --line: #d0dbd5; --accent: #0f6b5c; --card: #ffffff; --radius: 18px;
+      --shadow: 0 18px 40px rgba(20, 32, 28, 0.06); --stable: #c45c26; --m2: #0f6b5c;
+      --rate: #5c4033;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: Outfit, "Segoe UI", sans-serif; color: var(--ink);
+      background:
+        radial-gradient(ellipse 70% 45% at 8% -10%, rgba(15,107,92,.14), transparent 55%),
+        linear-gradient(180deg, #eef3f0 0%, var(--bg) 28%, var(--bg-deep) 100%);
+      min-height: 100vh;
+    }
+    main { width: min(1280px, calc(100% - 48px)); margin: 0 auto; padding: 48px 0 96px; }
+    .topnav {
+      display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
+      margin: 0 0 28px; padding-bottom: 14px; border-bottom: 1px solid var(--line);
+    }
+    .topnav a {
+      color: var(--muted); text-decoration: none; font-size: .92rem; font-weight: 500;
+    }
+    .topnav a:hover { color: var(--ink); }
+    .topnav a.active { color: var(--accent); font-weight: 650; }
+    .hero { display: grid; gap: 14px; margin-bottom: 28px; }
+    .eyebrow {
+      margin: 0; font-size: .78rem; font-weight: 600; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--accent);
+    }
+    h1 {
+      font-family: Fraunces, Georgia, serif; font-size: clamp(2.2rem, 4vw, 3.1rem);
+      font-weight: 700; line-height: 1.08; letter-spacing: -.02em; margin: 0; max-width: 20ch;
+    }
+    .lede { margin: 0; color: var(--muted); font-size: 1.05rem; line-height: 1.55; max-width: 62ch; }
+    .counters {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 8px 0 22px;
+    }
+    .counter {
+      background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 20px 22px; box-shadow: var(--shadow);
+    }
+    .counter .label {
+      font-size: .78rem; color: var(--muted); text-transform: uppercase;
+      letter-spacing: .08em; margin-bottom: 10px; font-weight: 600;
+    }
+    .counter .value {
+      font-size: clamp(1.25rem, 2.1vw, 1.75rem); font-weight: 700;
+      font-variant-numeric: tabular-nums; line-height: 1.1;
+    }
+    .counter .sub { margin-top: 10px; font-size: .9rem; color: var(--muted); }
+    .counter.emphasis {
+      border-color: rgba(196,92,38,.35);
+      background: linear-gradient(160deg, rgba(196,92,38,.10), transparent 45%), var(--card);
+    }
+    .counter.emphasis .value { color: var(--stable); }
+    .counter.rate {
+      border-color: rgba(92,64,51,.28);
+      background: linear-gradient(160deg, rgba(92,64,51,.08), transparent 45%), var(--card);
+    }
+    .counter.rate .value { color: var(--rate); }
+    .chart-card {
+      background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 18px; box-shadow: var(--shadow);
+    }
+    .chart-card + .chart-card { margin-top: 18px; }
+    .chart-title {
+      margin: 0 0 4px; font-size: 1.05rem; font-weight: 650;
+    }
+    .chart-sub {
+      margin: 0 0 12px; color: var(--muted); font-size: .88rem; line-height: 1.45; max-width: 72ch;
+    }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; margin: 0 0 12px; }
+    .toolbar .spacer { flex: 1; min-width: 12px; }
+    .toolbar .chart-title { margin: 0 0 4px; }
+    .toolbar .chart-sub { margin: 0; }
+    .toggle {
+      border: 1px solid var(--line); background: #f2f6f4; color: var(--muted);
+      border-radius: 999px; padding: 7px 14px; font: inherit; cursor: pointer;
+    }
+    .toggle.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .chart-wrap { position: relative; width: 100%; height: 420px; }
+    .section { margin-top: 48px; }
+    h2 { margin: 0 0 12px; font-size: 1.45rem; }
+    .panel {
+      background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+      overflow: auto; box-shadow: var(--shadow);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; }
+    th {
+      background: #f5f8f6; color: var(--muted); font-size: .78rem;
+      letter-spacing: .04em; text-transform: uppercase;
+    }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    th.num { text-align: right; }
+    .footer-note {
+      margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
+      font-size: .88rem; color: var(--muted); line-height: 1.55;
+    }
+    @media (max-width: 1100px) {
+      .counters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 900px) {
+      .counters { grid-template-columns: 1fr; }
+      h1 { max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <nav class="topnav" aria-label="Primary">
+      <a href="../index.html">Overview</a>
+      <a href="../us-treasuries/index.html">U.S. Treasuries</a>
+      <a class="active" href="./index.html">M2 vs Stablecoins</a>
+    </nav>
+    <header class="hero">
+      <p class="eyebrow">Money supply &amp; policy rates</p>
+      <h1>U.S. M2 vs Stablecoin Supply</h1>
+      <p class="lede">
+        Seasonally adjusted U.S. M2 (Fed H.6 via FRED <strong>M2SL</strong>) and aggregate
+        stablecoin market cap (RWA.xyz), with Fed funds policy/effective rates for comparing
+        supply trends against the rate cycle. Monthly since 2017.
+      </p>
+    </header>
+
+    <div class="counters">
+      <div class="counter">
+        <div class="label">U.S. M2 (SA)</div>
+        <div class="value">$23,052,300,000,000</div>
+        <div class="sub">FRED M2SL as-of 2026-05-01</div>
+      </div>
+      <div class="counter">
+        <div class="label">Stablecoin market cap</div>
+        <div class="value">$300,535,301,692</div>
+        <div class="sub">RWA.xyz as-of 2026-07-12</div>
+      </div>
+      <div class="counter emphasis">
+        <div class="label">Stablecoins as % of M2</div>
+        <div class="value">1.3037%</div>
+        <div class="sub">Month-end 2026-07-31</div>
+      </div>
+      <div class="counter rate">
+        <div class="label">Fed funds (monthly)</div>
+        <div class="value">3.63%</div>
+        <div class="sub">Target range 3.50–3.75%</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="toolbar">
+        <div>
+          <h2 class="chart-title" id="mainChartTitle">M2 vs stablecoin market cap</h2>
+          <p class="chart-sub" id="mainChartSub">Seasonally adjusted U.S. M2 and aggregate stablecoin supply on the same USD scale.</p>
+        </div>
+        <div class="spacer"></div>
+        <button type="button" class="toggle active" data-mode="usd">M2 vs Stablecoins</button>
+        <button type="button" class="toggle" data-mode="pct">% of M2</button>
+      </div>
+      <div class="chart-wrap"><canvas id="m2Chart"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <h2 class="chart-title">Stablecoin supply vs Fed funds</h2>
+      <p class="chart-sub">
+        Each series is min–max scaled to 0–100 over the full sample so shapes share one axis.
+        Hover shows the original units (stablecoin USD and FEDFUNDS %).
+      </p>
+      <div class="chart-wrap"><canvas id="ratesNormChart"></canvas></div>
+    </div>
+
+    <section class="section">
+      <h2>Recent months</h2>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Month-end</th>
+              <th class="num">U.S. M2</th>
+              <th class="num">Stablecoin mcap</th>
+              <th class="num">% of M2</th>
+              <th class="num">FEDFUNDS</th>
+              <th class="num">Target range</th>
+            </tr>
+          </thead>
+          <tbody><tr><td>2026-07-31</td><td class='num'>$23,052,300,000,000</td><td class='num'>$300,535,301,692</td><td class='num'>1.3037%</td><td class='num'>3.63%</td><td class='num'>3.50–3.75%</td></tr><tr><td>2026-06-30</td><td class='num'>$23,052,300,000,000</td><td class='num'>$295,164,258,940</td><td class='num'>1.2804%</td><td class='num'>3.63%</td><td class='num'>3.50–3.75%</td></tr><tr><td>2026-05-31</td><td class='num'>$23,052,300,000,000</td><td class='num'>$303,249,201,203</td><td class='num'>1.3155%</td><td class='num'>3.63%</td><td class='num'>3.50–3.75%</td></tr><tr><td>2026-04-30</td><td class='num'>$22,804,500,000,000</td><td class='num'>$301,311,107,379</td><td class='num'>1.3213%</td><td class='num'>3.64%</td><td class='num'>3.50–3.75%</td></tr><tr><td>2026-03-31</td><td class='num'>$22,686,200,000,000</td><td class='num'>$300,748,436,584</td><td class='num'>1.3257%</td><td class='num'>3.64%</td><td class='num'>3.50–3.75%</td></tr><tr><td>2026-02-28</td><td class='num'>$22,626,900,000,000</td><td class='num'>$295,433,621,856</td><td class='num'>1.3057%</td><td class='num'>3.64%</td><td class='num'>3.50–3.75%</td></tr><tr><td>2026-01-31</td><td class='num'>$22,429,300,000,000</td><td class='num'>$293,125,405,299</td><td class='num'>1.3069%</td><td class='num'>3.64%</td><td class='num'>3.50–3.75%</td></tr><tr><td>2025-12-31</td><td class='num'>$22,353,400,000,000</td><td class='num'>$298,588,399,610</td><td class='num'>1.3358%</td><td class='num'>3.72%</td><td class='num'>3.50–3.75%</td></tr><tr><td>2025-11-30</td><td class='num'>$22,277,300,000,000</td><td class='num'>$298,871,851,174</td><td class='num'>1.3416%</td><td class='num'>3.88%</td><td class='num'>3.75–4.00%</td></tr><tr><td>2025-10-31</td><td class='num'>$22,245,100,000,000</td><td class='num'>$297,757,551,304</td><td class='num'>1.3385%</td><td class='num'>4.09%</td><td class='num'>3.75–4.00%</td></tr><tr><td>2025-09-30</td><td class='num'>$22,170,400,000,000</td><td class='num'>$290,442,091,420</td><td class='num'>1.3100%</td><td class='num'>4.22%</td><td class='num'>4.00–4.25%</td></tr><tr><td>2025-08-31</td><td class='num'>$22,087,100,000,000</td><td class='num'>$275,213,647,212</td><td class='num'>1.2460%</td><td class='num'>4.33%</td><td class='num'>4.25–4.50%</td></tr><tr><td>2025-07-31</td><td class='num'>$22,020,400,000,000</td><td class='num'>$257,499,980,503</td><td class='num'>1.1694%</td><td class='num'>4.33%</td><td class='num'>4.25–4.50%</td></tr><tr><td>2025-06-30</td><td class='num'>$21,938,700,000,000</td><td class='num'>$243,755,343,332</td><td class='num'>1.1111%</td><td class='num'>4.33%</td><td class='num'>4.25–4.50%</td></tr><tr><td>2025-05-31</td><td class='num'>$21,833,900,000,000</td><td class='num'>$237,204,357,587</td><td class='num'>1.0864%</td><td class='num'>4.33%</td><td class='num'>4.25–4.50%</td></tr><tr><td>2025-04-30</td><td class='num'>$21,775,800,000,000</td><td class='num'>$232,340,828,491</td><td class='num'>1.0670%</td><td class='num'>4.33%</td><td class='num'>4.25–4.50%</td></tr><tr><td>2025-03-31</td><td class='num'>$21,693,600,000,000</td><td class='num'>$225,766,146,877</td><td class='num'>1.0407%</td><td class='num'>4.33%</td><td class='num'>4.25–4.50%</td></tr><tr><td>2025-02-28</td><td class='num'>$21,613,400,000,000</td><td class='num'>$219,412,625,968</td><td class='num'>1.0152%</td><td class='num'>4.33%</td><td class='num'>4.25–4.50%</td></tr><tr><td>2025-01-31</td><td class='num'>$21,548,100,000,000</td><td class='num'>$211,963,403,751</td><td class='num'>0.9837%</td><td class='num'>4.33%</td><td class='num'>4.25–4.50%</td></tr><tr><td>2024-12-31</td><td class='num'>$21,485,800,000,000</td><td class='num'>$199,097,848,738</td><td class='num'>0.9266%</td><td class='num'>4.48%</td><td class='num'>4.25–4.50%</td></tr><tr><td>2024-11-30</td><td class='num'>$21,452,200,000,000</td><td class='num'>$188,930,130,247</td><td class='num'>0.8807%</td><td class='num'>4.64%</td><td class='num'>4.50–4.75%</td></tr><tr><td>2024-10-31</td><td class='num'>$21,331,900,000,000</td><td class='num'>$168,110,445,950</td><td class='num'>0.7881%</td><td class='num'>4.83%</td><td class='num'>4.75–5.00%</td></tr><tr><td>2024-09-30</td><td class='num'>$21,269,500,000,000</td><td class='num'>$167,898,745,909</td><td class='num'>0.7894%</td><td class='num'>5.13%</td><td class='num'>4.75–5.00%</td></tr><tr><td>2024-08-31</td><td class='num'>$21,186,700,000,000</td><td class='num'>$165,723,599,112</td><td class='num'>0.7822%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr><tr><td>2024-07-31</td><td class='num'>$21,095,300,000,000</td><td class='num'>$159,497,209,193</td><td class='num'>0.7561%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr><tr><td>2024-06-30</td><td class='num'>$21,068,400,000,000</td><td class='num'>$157,019,324,566</td><td class='num'>0.7453%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr><tr><td>2024-05-31</td><td class='num'>$21,020,600,000,000</td><td class='num'>$157,123,094,423</td><td class='num'>0.7475%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr><tr><td>2024-04-30</td><td class='num'>$20,959,600,000,000</td><td class='num'>$157,013,850,143</td><td class='num'>0.7491%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr><tr><td>2024-03-31</td><td class='num'>$20,973,400,000,000</td><td class='num'>$148,058,070,139</td><td class='num'>0.7059%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr><tr><td>2024-02-29</td><td class='num'>$20,926,700,000,000</td><td class='num'>$139,785,229,980</td><td class='num'>0.6680%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr><tr><td>2024-01-31</td><td class='num'>$20,843,700,000,000</td><td class='num'>$134,585,883,544</td><td class='num'>0.6457%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr><tr><td>2023-12-31</td><td class='num'>$20,777,900,000,000</td><td class='num'>$128,649,542,971</td><td class='num'>0.6192%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr><tr><td>2023-11-30</td><td class='num'>$20,746,600,000,000</td><td class='num'>$126,923,634,574</td><td class='num'>0.6118%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr><tr><td>2023-10-31</td><td class='num'>$20,733,100,000,000</td><td class='num'>$123,007,829,616</td><td class='num'>0.5933%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr><tr><td>2023-09-30</td><td class='num'>$20,747,600,000,000</td><td class='num'>$122,178,752,291</td><td class='num'>0.5889%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr><tr><td>2023-08-31</td><td class='num'>$20,777,000,000,000</td><td class='num'>$123,936,798,753</td><td class='num'>0.5965%</td><td class='num'>5.33%</td><td class='num'>5.25–5.50%</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="footer-note">
+      Sources: Federal Reserve H.6 Money Stock Measures via FRED <a href="https://fred.stlouisfed.org/series/M2SL">M2SL</a>;
+      Fed funds via FRED <a href="https://fred.stlouisfed.org/series/FEDFUNDS">FEDFUNDS</a> (monthly effective average),
+      <a href="https://fred.stlouisfed.org/series/EFFR">EFFR</a> (daily effective, month-end),
+      and target range <a href="https://fred.stlouisfed.org/series/DFEDTARU">DFEDTARU</a>/<a href="https://fred.stlouisfed.org/series/DFEDTARL">DFEDTARL</a>;
+      stablecoin market caps from RWA.xyz. M2 figures converted from billions USD.
+    </p>
+  </main>
+  <script id="chart-data" type="application/json">{"labels":["2017-11-30","2017-12-31","2018-01-31","2018-02-28","2018-03-31","2018-04-30","2018-05-31","2018-06-30","2018-07-31","2018-08-31","2018-09-30","2018-10-31","2018-11-30","2018-12-31","2019-01-31","2019-02-28","2019-03-31","2019-04-30","2019-05-31","2019-06-30","2019-07-31","2019-08-31","2019-09-30","2019-10-31","2019-11-30","2019-12-31","2020-01-31","2020-02-29","2020-03-31","2020-04-30","2020-05-31","2020-06-30","2020-07-31","2020-08-31","2020-09-30","2020-10-31","2020-11-30","2020-12-31","2021-01-31","2021-02-28","2021-03-31","2021-04-30","2021-05-31","2021-06-30","2021-07-31","2021-08-31","2021-09-30","2021-10-31","2021-11-30","2021-12-31","2022-01-31","2022-02-28","2022-03-31","2022-04-30","2022-05-31","2022-06-30","2022-07-31","2022-08-31","2022-09-30","2022-10-31","2022-11-30","2022-12-31","2023-01-31","2023-02-28","2023-03-31","2023-04-30","2023-05-31","2023-06-30","2023-07-31","2023-08-31","2023-09-30","2023-10-31","2023-11-30","2023-12-31","2024-01-31","2024-02-29","2024-03-31","2024-04-30","2024-05-31","2024-06-30","2024-07-31","2024-08-31","2024-09-30","2024-10-31","2024-11-30","2024-12-31","2025-01-31","2025-02-28","2025-03-31","2025-04-30","2025-05-31","2025-06-30","2025-07-31","2025-08-31","2025-09-30","2025-10-31","2025-11-30","2025-12-31","2026-01-31","2026-02-28","2026-03-31","2026-04-30","2026-05-31","2026-06-30","2026-07-31"],"m2":[13843500000000.0,13881700000000.0,13900300000000.0,13949300000000.0,14012700000000.0,14035900000000.0,14092400000000.0,14137200000000.0,14174600000000.0,14223200000000.0,14245500000000.0,14256600000000.0,14282800000000.0,14386800000000.0,14459700000000.0,14506300000000.0,14557500000000.0,14594700000000.0,14704400000000.0,14802800000000.0,14886800000000.0,14974400000000.0,15047000000000.0,15184100000000.0,15296000000000.0,15347500000000.0,15427100000000.0,15493400000000.0,16033000000000.0,17065300000000.0,17932900000000.0,18184300000000.0,18335400000000.0,18411200000000.0,18602500000000.0,18757600000000.0,18997000000000.0,19115700000000.0,19379000000000.0,19641800000000.0,19873200000000.0,20175300000000.0,20458800000000.0,20477000000000.0,20633200000000.0,20840600000000.0,20981000000000.0,21160600000000.0,21335700000000.0,21498700000000.0,21650000000000.0,21724800000000.0,21786900000000.0,21769400000000.0,21719200000000.0,21651100000000.0,21652500000000.0,21638900000000.0,21536700000000.0,21461400000000.0,21406300000000.0,21290800000000.0,21279400000000.0,21242600000000.0,20946700000000.0,20761300000000.0,20829600000000.0,20799200000000.0,20791100000000.0,20777000000000.0,20747600000000.0,20733100000000.0,20746600000000.0,20777900000000.0,20843700000000.0,20926700000000.0,20973400000000.0,20959600000000.0,21020600000000.0,21068400000000.0,21095300000000.0,21186700000000.0,21269500000000.0,21331900000000.0,21452200000000.0,21485800000000.0,21548100000000.0,21613400000000.0,21693600000000.0,21775800000000.0,21833900000000.0,21938700000000.0,22020400000000.0,22087100000000.0,22170400000000.0,22245100000000.0,22277300000000.0,22353400000000.0,22429300000000.0,22626900000000.0,22686200000000.0,22804500000000.0,23052300000000.0,23052300000000.0,23052300000000.0],"stable":[10089.0,10123.4,59407139.54,59937507.92,60047806.3,60029069.33,59882766.45,60083941.2,29336550.23,29348121.79,58035943.68,297314367.64,446852255.32,542150665.06,587497986.39,508700699.09,520832761.43,953868554.7,1168216883.24,1611375012.92,2251077060.68,2354338805.58,2831826840.78,3520716903.58,3577029574.51,4018227052.62,3812182347.07,4044409759.46,6188557224.47,7729308568.83,9091135999.3,9919797592.67,11372749229.77,14542678911.78,17998372822.99,19735628000.9,22443069006.03,25551325801.37,34076355495.83,47023852500.71,55771109356.21,79874433422.26,100444291508.25,105876045013.44,110293886983.31,114534978619.32,122827311108.87,128808514104.47,140062069595.24,149178511600.76,158322132479.75,166815540403.54,165797406240.64,163265201612.7,155408772920.96,150019282578.27,149895810601.35,150118928975.86,146718326371.5,144045929571.4,140034039257.47,136935155063.54,136501220253.29,134026923389.75,130745414524.0,129346607446.49,128172512298.99,126242040085.71,124351939344.11,123936798752.62,122178752291.01,123007829616.23,126923634574.35,128649542971.31,134585883544.03,139785229979.81,148058070138.67,157013850142.82,157123094422.52,157019324566.5,159497209193.44,165723599112.31,167898745909.44,168110445950.45,188930130247.47,199097848737.51,211963403750.94,219412625967.68,225766146876.79,232340828490.56,237204357587.16,243755343331.54,257499980503.24,275213647212.31,290442091419.6,297757551303.91,298871851174.02,298588399610.36,293125405298.92,295433621855.81,300748436583.7,301311107378.59,303249201203.47,295164258940.22,300535301691.75],"share":[0.0,0.0,0.0004,0.0004,0.0004,0.0004,0.0004,0.0004,0.0002,0.0002,0.0004,0.0021,0.0031,0.0038,0.0041,0.0035,0.0036,0.0065,0.0079,0.0109,0.0151,0.0157,0.0188,0.0232,0.0234,0.0262,0.0247,0.0261,0.0386,0.0453,0.0507,0.0546,0.062,0.079,0.0968,0.1052,0.1181,0.1337,0.1758,0.2394,0.2806,0.3959,0.491,0.517,0.5345,0.5496,0.5854,0.6087,0.6565,0.6939,0.7313,0.7679,0.761,0.75,0.7155,0.6929,0.6923,0.6937,0.6812,0.6712,0.6542,0.6432,0.6415,0.6309,0.6242,0.623,0.6153,0.607,0.5981,0.5965,0.5889,0.5933,0.6118,0.6192,0.6457,0.668,0.7059,0.7491,0.7475,0.7453,0.7561,0.7822,0.7894,0.7881,0.8807,0.9266,0.9837,1.0152,1.0407,1.067,1.0864,1.1111,1.1694,1.246,1.31,1.3385,1.3416,1.3358,1.3069,1.3057,1.3257,1.3213,1.3155,1.2804,1.3037],"fedfunds":[1.16,1.3,1.41,1.42,1.51,1.69,1.7,1.82,1.91,1.91,1.95,2.19,2.2,2.27,2.4,2.4,2.41,2.42,2.39,2.38,2.4,2.13,2.04,1.83,1.55,1.55,1.55,1.58,0.65,0.05,0.05,0.08,0.09,0.1,0.09,0.09,0.09,0.09,0.09,0.08,0.07,0.07,0.06,0.08,0.1,0.09,0.08,0.08,0.08,0.08,0.08,0.08,0.2,0.33,0.77,1.21,1.68,2.33,2.56,3.08,3.78,4.1,4.33,4.57,4.65,4.83,5.06,5.08,5.12,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.13,4.83,4.64,4.48,4.33,4.33,4.33,4.33,4.33,4.33,4.33,4.33,4.22,4.09,3.88,3.72,3.64,3.64,3.64,3.64,3.63,3.63,3.63],"effr":[1.07,1.33,1.34,1.35,1.67,1.69,1.7,1.91,1.91,1.91,2.18,2.2,2.2,2.4,2.4,2.4,2.43,2.45,2.4,2.4,2.4,2.13,1.9,1.58,1.56,1.55,1.59,1.58,0.08,0.05,0.05,0.08,0.1,0.09,0.09,0.09,0.09,0.09,0.07,0.07,0.06,0.05,0.05,0.08,0.07,0.06,0.06,0.07,0.07,0.07,0.08,0.08,0.33,0.33,0.83,1.58,2.32,2.33,3.08,3.08,3.83,4.33,4.33,4.57,4.83,4.83,5.08,5.08,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,5.33,4.83,4.83,4.58,4.33,4.33,4.33,4.33,4.33,4.33,4.33,4.33,4.33,4.09,3.86,3.89,3.64,3.64,3.64,3.64,3.64,3.62,3.63,3.62],"target_upper":[1.25,1.5,1.5,1.5,1.75,1.75,1.75,2.0,2.0,2.0,2.25,2.25,2.25,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.25,2.0,1.75,1.75,1.75,1.75,1.75,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.5,0.5,1.0,1.75,2.5,2.5,3.25,3.25,4.0,4.5,4.5,4.75,5.0,5.0,5.25,5.25,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.5,5.0,5.0,4.75,4.5,4.5,4.5,4.5,4.5,4.5,4.5,4.5,4.5,4.25,4.0,4.0,3.75,3.75,3.75,3.75,3.75,3.75,3.75,3.75],"target_lower":[1.0,1.25,1.25,1.25,1.5,1.5,1.5,1.75,1.75,1.75,2.0,2.0,2.0,2.25,2.25,2.25,2.25,2.25,2.25,2.25,2.25,2.0,1.75,1.5,1.5,1.5,1.5,1.5,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.25,0.25,0.75,1.5,2.25,2.25,3.0,3.0,3.75,4.25,4.25,4.5,4.75,4.75,5.0,5.0,5.25,5.25,5.25,5.25,5.25,5.25,5.25,5.25,5.25,5.25,5.25,5.25,5.25,5.25,4.75,4.75,4.5,4.25,4.25,4.25,4.25,4.25,4.25,4.25,4.25,4.25,4.0,3.75,3.75,3.5,3.5,3.5,3.5,3.5,3.5,3.5,3.5],"stable_norm":[0.0,0.0,0.0196,0.0198,0.0198,0.0198,0.0197,0.0198,0.0097,0.0097,0.0191,0.098,0.1474,0.1788,0.1937,0.1677,0.1717,0.3145,0.3852,0.5314,0.7423,0.7764,0.9338,1.161,1.1796,1.3251,1.2571,1.3337,2.0407,2.5488,2.9979,3.2712,3.7503,4.7956,5.9352,6.5081,7.4009,8.4258,11.2371,15.5067,18.3912,26.3395,33.1227,34.9139,36.3707,37.7693,40.5038,42.4761,46.1871,49.1934,52.2086,55.0094,54.6736,53.8386,51.2479,49.4706,49.4299,49.5035,48.3821,47.5008,46.1779,45.156,45.0129,44.197,43.1148,42.6536,42.2664,41.6298,41.0065,40.8696,40.2899,40.5633,41.8546,42.4237,44.3813,46.0958,48.8239,51.7772,51.8132,51.779,52.5961,54.6493,55.3666,55.4364,62.3019,65.6549,69.8974,72.3539,74.449,76.6171,78.2209,80.3812,84.9137,90.7549,95.7767,98.1891,98.5565,98.463,96.6616,97.4227,99.1753,99.3609,100.0,97.3339,99.1051],"fedfunds_norm":[21.0227,23.6742,25.7576,25.947,27.6515,31.0606,31.25,33.5227,35.2273,35.2273,35.9848,40.5303,40.7197,42.0455,44.5076,44.5076,44.697,44.8864,44.3182,44.1288,44.5076,39.3939,37.6894,33.7121,28.4091,28.4091,28.4091,28.9773,11.3636,0.0,0.0,0.5682,0.7576,0.947,0.7576,0.7576,0.7576,0.7576,0.7576,0.5682,0.3788,0.3788,0.1894,0.5682,0.947,0.7576,0.5682,0.5682,0.5682,0.5682,0.5682,0.5682,2.8409,5.303,13.6364,21.9697,30.8712,43.1818,47.5379,57.3864,70.6439,76.7045,81.0606,85.6061,87.1212,90.5303,94.8864,95.2652,96.0227,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,96.2121,90.5303,86.9318,83.9015,81.0606,81.0606,81.0606,81.0606,81.0606,81.0606,81.0606,81.0606,78.9773,76.5152,72.5379,69.5076,67.9924,67.9924,67.9924,67.9924,67.803,67.803,67.803]}</script>
+  <script>
+  (function () {
+    const DATA = JSON.parse(document.getElementById('chart-data').textContent);
+    const COL = { m2: '#0f6b5c', stable: '#c45c26', rate: '#5c4033' };
+    const moneyB = (v) => '$' + (Number(v) / 1e9).toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'B';
+    const pct = (v) => Number(v).toFixed(3) + '%';
+    const rate = (v) => (v == null ? '—' : Number(v).toFixed(2) + '%');
+    let mode = 'usd';
+    const titleEl = document.getElementById('mainChartTitle');
+    const subEl = document.getElementById('mainChartSub');
+
+    const xScale = {
+      ticks: {
+        maxTicksLimit: 10,
+        callback: function (val) {
+          const label = this.getLabelForValue(val);
+          return label ? label.slice(0, 7) : '';
+        },
+      },
+      grid: { color: '#e8eef2' },
+    };
+
+    const chart = new Chart(document.getElementById('m2Chart'), {
+      type: 'line',
+      data: {
+        labels: DATA.labels,
+        datasets: [
+          {
+            label: 'U.S. M2',
+            data: DATA.m2.slice(),
+            borderColor: COL.m2,
+            backgroundColor: 'rgba(15,107,92,0.12)',
+            fill: true,
+            tension: 0.15,
+            pointRadius: 0,
+            yAxisID: 'y',
+          },
+          {
+            label: 'Stablecoin market cap',
+            data: DATA.stable.slice(),
+            borderColor: COL.stable,
+            backgroundColor: 'rgba(196,92,38,0.14)',
+            fill: true,
+            tension: 0.15,
+            pointRadius: 0,
+            borderWidth: 2.5,
+            yAxisID: 'y',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: (item) => {
+                if (mode === 'pct') return item.dataset.label + ': ' + pct(item.parsed.y);
+                return item.dataset.label + ': ' + moneyB(item.parsed.y);
+              },
+            },
+          },
+        },
+        scales: {
+          x: xScale,
+          y: {
+            beginAtZero: true,
+            ticks: { callback: (v) => mode === 'pct' ? v + '%' : moneyB(v) },
+            title: { display: true, text: 'USD' },
+            grid: { color: '#e3ebf0' },
+          },
+        },
+      },
+    });
+
+    function setMode(next) {
+      mode = next;
+      if (mode === 'pct') {
+        titleEl.textContent = 'Stablecoins as a share of M2';
+        subEl.textContent = 'Aggregate stablecoin market cap divided by seasonally adjusted U.S. M2.';
+        chart.data.datasets = [{
+          label: 'Stablecoins as % of M2',
+          data: DATA.share.slice(),
+          borderColor: COL.stable,
+          backgroundColor: 'rgba(196,92,38,0.16)',
+          fill: true,
+          tension: 0.15,
+          pointRadius: 0,
+          borderWidth: 2.5,
+          yAxisID: 'y',
+        }];
+        chart.options.scales.y.beginAtZero = true;
+        chart.options.scales.y.max = undefined;
+        chart.options.scales.y.title.text = '% of M2';
+        chart.options.scales.y.ticks.callback = (v) => v + '%';
+      } else {
+        titleEl.textContent = 'M2 vs stablecoin market cap';
+        subEl.textContent = 'Seasonally adjusted U.S. M2 and aggregate stablecoin supply on the same USD scale.';
+        chart.data.datasets = [
+          {
+            label: 'U.S. M2',
+            data: DATA.m2.slice(),
+            borderColor: COL.m2,
+            backgroundColor: 'rgba(15,107,92,0.12)',
+            fill: true,
+            tension: 0.15,
+            pointRadius: 0,
+            yAxisID: 'y',
+          },
+          {
+            label: 'Stablecoin market cap',
+            data: DATA.stable.slice(),
+            borderColor: COL.stable,
+            backgroundColor: 'rgba(196,92,38,0.14)',
+            fill: true,
+            tension: 0.15,
+            pointRadius: 0,
+            borderWidth: 2.5,
+            yAxisID: 'y',
+          },
+        ];
+        chart.options.scales.y.beginAtZero = true;
+        chart.options.scales.y.max = undefined;
+        chart.options.scales.y.title.text = 'USD';
+        chart.options.scales.y.ticks.callback = (v) => moneyB(v);
+      }
+      chart.update();
+      document.querySelectorAll('[data-mode]').forEach((btn) => {
+        btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
+      });
+    }
+    document.querySelectorAll('[data-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => setMode(btn.getAttribute('data-mode')));
+    });
+
+    new Chart(document.getElementById('ratesNormChart'), {
+      type: 'line',
+      data: {
+        labels: DATA.labels,
+        datasets: [
+          {
+            label: 'Stablecoin market cap',
+            data: DATA.stable_norm.slice(),
+            borderColor: COL.stable,
+            backgroundColor: 'rgba(196,92,38,0.10)',
+            fill: false,
+            tension: 0.15,
+            pointRadius: 0,
+            borderWidth: 2.5,
+            spanGaps: true,
+          },
+          {
+            label: 'FEDFUNDS (monthly avg)',
+            data: DATA.fedfunds_norm.slice(),
+            borderColor: COL.rate,
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.15,
+            pointRadius: 0,
+            borderWidth: 2.5,
+            spanGaps: true,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: (item) => {
+                const i = item.dataIndex;
+                if (item.dataset.label.startsWith('Stablecoin')) {
+                  return 'Stablecoin market cap: ' + moneyB(DATA.stable[i])
+                    + '  ·  norm ' + Number(item.parsed.y).toFixed(1);
+                }
+                return 'FEDFUNDS: ' + rate(DATA.fedfunds[i])
+                  + '  ·  norm ' + Number(item.parsed.y).toFixed(1);
+              },
+            },
+          },
+        },
+        scales: {
+          x: xScale,
+          y: {
+            min: 0,
+            max: 100,
+            title: { display: true, text: 'Normalized (0–100)' },
+            ticks: { callback: (v) => v },
+            grid: { color: '#e3ebf0' },
+          },
+        },
+      },
+    });
+  })();
+  </script>
+</body>
+</html>
