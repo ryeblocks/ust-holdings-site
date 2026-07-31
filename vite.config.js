@@ -13,6 +13,7 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         treasuries: resolve(__dirname, "us-treasuries/index.html"),
         m2: resolve(__dirname, "m2-stablecoins/index.html"),
+        etfVsPerps: resolve(__dirname, "etf-vs-perps/index.html"),
       },
     },
   },

@@ -7,6 +7,7 @@ Mirror of `app/` for Netlify (or Vercel). Showcase HTML only — no local resear
 - `/` — overview
 - `/us-treasuries/` — U.S. Treasury holdings dashboard
 - `/m2-stablecoins/` — U.S. M2 vs stablecoin supply
+- `/etf-vs-perps/` — ETF vs Hyperliquid perps (leveraged gold)
 
 ## Deploy (Netlify)
 
@@ -29,3 +30,4 @@ Mirror of `app/` for Netlify (or Vercel). Showcase HTML only — no local resear
 - Issuer attestation reports
 - RWA.xyz
 - FRED M2SL / Federal Reserve H.6 / Fed funds
+- Yahoo Finance (GLD / UGL / SHNY / GC=F), Hyperliquid xyz:GOLD, CME Gold
