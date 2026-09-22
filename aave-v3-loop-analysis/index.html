@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aave V3 — Staked ETH Loop Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1419; --panel: #171d25; --line: #2a3340; --text: #e8edf2;
+    --muted: #8b98a8; --accent: #3d9cf0; --good: #3ecf8e; --bad: #f07178; --warn: #e6b450;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.45; }
+  header { padding: 28px 32px 12px; border-bottom: 1px solid var(--line); }
+  h1 { margin: 0 0 6px; font-size: 1.55rem; font-weight: 650; }
+  h2 { margin: 0 0 12px; font-size: 1.1rem; font-weight: 600; }
+  .muted { color: var(--muted); font-size: 0.9rem; }
+  main { padding: 20px 32px 48px; max-width: 1560px; margin: 0 auto; }
+  .banner {
+    background: #1a1710; border: 1px solid #5a4a20; border-left: 4px solid var(--warn);
+    border-radius: 8px; padding: 12px 14px; margin: 16px 0 8px; font-size: 0.92rem;
+  }
+  .win {
+    background: #0f1f18; border: 1px solid #1f5a3d; border-left: 4px solid var(--good);
+    border-radius: 8px; padding: 14px 16px; margin: 12px 0 18px; font-size: 0.95rem;
+  }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 12px 0 18px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .stat.hl { border-color: #2a6a4a; }
+  .stat .v { font-size: 1.35rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .stat .l { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+  .pos { color: var(--good); } .acc { color: var(--accent); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; }
+  .chart-wrap { height: 300px; position: relative; }
+  .chart-wrap.tall { height: 360px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .grid3 { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 18px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+  th, td { border-bottom: 1px solid var(--line); padding: 7px 8px; text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+  th {
+    color: var(--muted); font-weight: 600; position: sticky; top: 0; background: #1c2430; z-index: 1;
+    user-select: none;
+  }
+  th.sortable { cursor: pointer; }
+  th.sortable:hover { color: var(--text); }
+  th.sortable.active { color: var(--accent); }
+  th .sort-ind { margin-left: 4px; font-size: 0.7rem; opacity: 0.85; }
+  .table-scroll { overflow: auto; max-height: 560px; border: 1px solid var(--line); border-radius: 8px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .mono { font-family: ui-monospace, Consolas, monospace; font-size: 0.76rem; }
+  .toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  input[type="search"] {
+    background: #121820; border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; font-size: 0.85rem; min-width: 280px;
+  }
+  .toggle {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: #121820; border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 12px; font-size: 0.85rem; cursor: pointer; user-select: none;
+  }
+  .toggle input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+  .toggle.on { border-color: #2a6a4a; background: #0f1f18; }
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem;
+    border: 1px solid var(--line); color: var(--muted);
+  }
+  .pill.hot { border-color: #2a6a4a; color: var(--good); background: #0f1f18; }
+  .pill.mid { border-color: #5a4a20; color: var(--warn); background: #1a1710; }
+  .flow {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; font-size: 0.88rem;
+  }
+  .flow .node {
+    background: #121820; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+  }
+  .flow .arrow { color: var(--muted); }
+  .legend-hint { font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+  .mode-label { font-size: 0.78rem; color: var(--accent); margin-left: 8px; font-weight: 600; }
+  .topnav {
+    display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: center;
+    padding: 14px 32px; border-bottom: 1px solid var(--line); background: #121820;
+  }
+  .topnav a { color: var(--muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
+  .topnav a:hover { color: var(--text); }
+  .topnav a.active { color: var(--accent); font-weight: 650; }
+  .temp-tag {
+    margin-left: auto; font-size: 0.72rem; font-weight: 650; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--warn); border: 1px solid #5a4a20;
+    background: #1a1710; border-radius: 999px; padding: 3px 10px;
+  }
+  @media (max-width: 1100px) {
+    .stats, .grid2, .grid3 { grid-template-columns: 1fr; }
+    main, header, .topnav { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+<nav class="topnav" aria-label="Primary">
+  <a href="../index.html">Overview</a>
+  <a href="../us-treasuries/index.html">U.S. Treasuries</a>
+  <a href="../m2-stablecoins/index.html">M2 vs Stablecoins</a>
+  <a href="../etf-vs-perps/index.html">ETF vs Perps</a>
+  <a class="active" href="./index.html">Aave V3 Loop</a>
+  <span class="temp-tag">Temporary</span>
+</nav>
+<header>
+  <h1>Aave V3 Ethereum — Staked ETH Loop Dashboard</h1>
+  <div class="muted" id="subtitle">Loading cohort…</div>
+</header>
+<main>
+  <div class="banner">
+    <strong>Loop thesis:</strong> deposit LST/LRT → borrow WETH → restake/deposit again.
+    Default view is <em>WETH only</em>. Use <em>Include stablecoins</em> to add USD debt back into graphics and loop ratios.
+  </div>
+
+  <div class="toolbar" style="margin-top:14px">
+    <label class="toggle" id="stablesToggleLabel">
+      <input type="checkbox" id="includeStablesToggle" />
+      <span>Include stablecoins in graphics &amp; loop metrics</span>
+    </label>
+    <span class="mode-label" id="modeLabel">Mode: WETH only</span>
+  </div>
+
+  <div class="win" id="winBanner"></div>
+  <div class="stats" id="stats"></div>
+
+  <div class="panel">
+    <h2>Loop amplifier flow (cohort aggregate) <span class="mode-label" id="flowMode"></span></h2>
+    <div class="flow" id="flow"></div>
+    <div class="legend-hint" id="flowHint"></div>
+  </div>
+
+  <div class="grid3">
+    <div class="panel">
+      <h2 id="top20Title">Top 20 — staked ETH vs loop borrow</h2>
+      <div class="chart-wrap tall"><canvas id="top20Chart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2 id="pieTitle">Borrow composition</h2>
+      <div class="chart-wrap tall"><canvas id="borrowPie"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2 id="bucketTitle">Users by loop ratio</h2>
+      <div class="chart-wrap tall"><canvas id="bucketChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2 id="scatterTitle">Scatter — staked ETH vs loop borrow</h2>
+      <div class="muted" style="margin-bottom:8px">Each point is a wallet. Near-diagonal points are more fully looped.</div>
+      <div class="chart-wrap tall"><canvas id="scatterChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Deposit mix — staked ETH vs other collateral</h2>
+      <div class="chart-wrap tall"><canvas id="depositMixChart"></canvas></div>
+      <div class="legend-hint" id="depositMixHint"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Wallet table</h2>
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Filter by address…" />
+      <span class="muted" id="rowCount"></span>
+    </div>
+    <div class="table-scroll">
+      <table id="userTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th class="sortable" data-key="user">Address</th>
+            <th class="sortable" data-key="total_deposits_usd">Total deposits USD</th>
+            <th class="sortable" data-key="total_borrow_usd">Total borrow USD</th>
+            <th class="sortable" data-key="staked_eth_deposits_usd">Staked ETH deposits USD</th>
+            <th class="sortable" data-key="weth_borrow_usd">WETH borrowed USD</th>
+            <th class="sortable" data-key="usd_stable_borrow_usd">Stablecoins borrowed USD</th>
+            <th class="sortable" data-key="active_loop_borrow">Active loop borrow USD</th>
+            <th class="sortable" data-key="active_loop_ratio">Loop ratio</th>
+            <th class="sortable" data-key="ltv_total">LTV</th>
+            <th>Signal</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="legend-hint">
+      Click any column header to sort ascending/descending.
+      <strong>Active loop borrow</strong> and <strong>Loop ratio</strong> follow the include-stablecoins toggle (WETH vs WETH+stables).
+      Stablecoin and WETH columns always show the raw breakouts.
+    </div>
+  </div>
+</main>
+
+<script>
+const STABLE_SYMBOLS = new Set([
+  "USDC", "USDT", "DAI", "GHO", "USDe", "USDS", "EURC", "PYUSD", "USDtb", "crvUSD", "FRAX",
+]);
+
+const usd = (n) => {
+  if (!Number.isFinite(n)) return "—";
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return "$" + (n / 1e9).toFixed(2) + "B";
+  if (abs >= 1e6) return "$" + (n / 1e6).toFixed(1) + "M";
+  if (abs >= 1e3) return "$" + (n / 1e3).toFixed(0) + "K";
+  return "$" + n.toFixed(0);
+};
+const pct = (n) => (Number.isFinite(n) ? (n * 100).toFixed(1) + "%" : "—");
+const shortAddr = (a) => a.slice(0, 6) + "…" + a.slice(-4);
+
+Chart.defaults.color = "#8b98a8";
+Chart.defaults.borderColor = "#2a3340";
+Chart.defaults.font.family = '"Segoe UI", system-ui, sans-serif';
+
+let DATA = null;
+let wethOnly = true; // default: WETH-only; toggle includes stablecoins
+let sortKey = "staked_eth_deposits_usd";
+let sortDir = "desc";
+let filter = "";
+const charts = {};
+
+function enrichUsers(users) {
+  return users.map((u) => {
+    const bySym = u.borrow_by_symbol || {};
+    const weth = Number(bySym.WETH || 0);
+    const stables = Number(u.usd_stable_borrow_usd || 0);
+    const staked = Number(u.staked_eth_deposits_usd || 0);
+    return {
+      ...u,
+      weth_borrow_usd: weth,
+      usd_stable_borrow_usd: stables,
+      weth_loop_ratio: staked > 0 ? weth / staked : 0,
+      recyclable_loop_ratio: staked > 0 ? Number(u.recyclable_borrow_usd || 0) / staked : 0,
+    };
+  });
+}
+
+function activeBorrow(u) {
+  return wethOnly ? u.weth_borrow_usd : Number(u.recyclable_borrow_usd || 0);
+}
+
+function activeLoopRatio(u) {
+  return wethOnly ? u.weth_loop_ratio : u.recyclable_loop_ratio;
+}
+
+function loopBuckets(users) {
+  const buckets = { "0": 0, "0-25%": 0, "25-50%": 0, "50-75%": 0, "75-100%": 0, "100%+": 0 };
+  for (const u of users) {
+    const borrow = activeBorrow(u);
+    const ratio = activeLoopRatio(u);
+    if (borrow <= 1) buckets["0"] += 1;
+    else if (ratio < 0.25) buckets["0-25%"] += 1;
+    else if (ratio < 0.5) buckets["25-50%"] += 1;
+    else if (ratio < 0.75) buckets["50-75%"] += 1;
+    else if (ratio < 1.0) buckets["75-100%"] += 1;
+    else buckets["100%+"] += 1;
+  }
+  return buckets;
+}
+
+function modeAggregate(users) {
+  const base = DATA.aggregate;
+  const staked = base.staked_eth_deposits_usd;
+  const weth = users.reduce((s, u) => s + u.weth_borrow_usd, 0);
+  const stables = users.reduce((s, u) => s + u.usd_stable_borrow_usd, 0);
+  const loopBorrow = wethOnly ? weth : weth + stables;
+  const totalBorrow = base.total_borrow_usd;
+  return {
+    ...base,
+    eth_like_borrow_usd: weth,
+    usd_stable_borrow_usd: stables,
+    active_loop_borrow_usd: loopBorrow,
+    loop_borrow_vs_staked: staked > 0 ? loopBorrow / staked : 0,
+    recyclable_share_of_borrow: totalBorrow > 0 ? loopBorrow / totalBorrow : 0,
+  };
+}
+
+function borrowComposition() {
+  const rows = DATA.borrow_composition || [];
+  if (!wethOnly) return rows.slice(0, 8);
+  return rows.filter(([sym]) => !STABLE_SYMBOLS.has(sym)).slice(0, 8);
+}
+
+function signal(u) {
+  const borrow = activeBorrow(u);
+  const ratio = activeLoopRatio(u);
+  if (borrow <= 1) return { cls: "", label: "no borrow" };
+  if (ratio >= 0.75) return { cls: "hot", label: "high loop" };
+  if (ratio >= 0.4) return { cls: "mid", label: "partial loop" };
+  return { cls: "", label: "low loop" };
+}
+
+function destroyChart(key) {
+  if (charts[key]) {
+    charts[key].destroy();
+    delete charts[key];
+  }
+}
+
+function renderStats(agg) {
+  const loopLabel = wethOnly ? "WETH borrow ÷ staked ETH" : "WETH+stables ÷ staked ETH";
+  const shareLabel = wethOnly ? "Share of borrow that is WETH" : "Share of borrow that is WETH+stables";
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><div class="v">${usd(agg.staked_eth_deposits_usd)}</div><div class="l">Staked ETH deposits</div></div>
+    <div class="stat"><div class="v">${usd(agg.total_deposits_usd)}</div><div class="l">Total deposits (all assets)</div></div>
+    <div class="stat"><div class="v">${usd(agg.total_borrow_usd)}</div><div class="l">Total borrow</div></div>
+    <div class="stat hl"><div class="v pos">${usd(agg.active_loop_borrow_usd)}</div><div class="l">Active loop borrow (${wethOnly ? "WETH" : "WETH+stables"})</div></div>
+    <div class="stat"><div class="v acc">${pct(agg.loop_borrow_vs_staked)}</div><div class="l">Loop ratio (${loopLabel})</div></div>
+    <div class="stat"><div class="v">${usd(agg.eth_like_borrow_usd)}</div><div class="l">WETH borrowed</div></div>
+    <div class="stat"><div class="v">${usd(agg.usd_stable_borrow_usd)}</div><div class="l">Stablecoins borrowed</div></div>
+    <div class="stat"><div class="v pos">${pct(agg.recyclable_share_of_borrow)}</div><div class="l">${shareLabel}</div></div>
+  `;
+
+  document.getElementById("winBanner").innerHTML = wethOnly
+    ? `<strong>WETH-only read:</strong> ${usd(agg.eth_like_borrow_usd)} WETH debt against
+       ${usd(agg.staked_eth_deposits_usd)} staked-ETH collateral
+       (<span class="pos">${pct(agg.loop_borrow_vs_staked)}</span> loop ratio).
+       Stablecoin debt (${usd(agg.usd_stable_borrow_usd)}) is excluded from graphics.`
+    : `<strong>Aggregate read:</strong> ${usd(agg.active_loop_borrow_usd)} of WETH+stable debt against
+       ${usd(agg.staked_eth_deposits_usd)} staked-ETH collateral
+       (<span class="pos">${pct(agg.loop_borrow_vs_staked)}</span> loop ratio).
+       Breakout: ${usd(agg.eth_like_borrow_usd)} WETH · ${usd(agg.usd_stable_borrow_usd)} stables.`;
+
+  if (wethOnly) {
+    document.getElementById("flow").innerHTML = `
+      <div class="node">Staked ETH collateral<br><strong class="pos">${usd(agg.staked_eth_deposits_usd)}</strong></div>
+      <div class="arrow">→ borrow →</div>
+      <div class="node">WETH only<br><strong>${usd(agg.eth_like_borrow_usd)}</strong></div>
+      <div class="arrow">→ restake/deposit →</div>
+      <div class="node">WETH loop capacity<br><strong class="acc">${pct(agg.loop_borrow_vs_staked)}</strong></div>
+    `;
+    document.getElementById("flowHint").textContent =
+      "Stablecoins excluded. Loop ratio = WETH borrowed ÷ staked-ETH deposits.";
+  } else {
+    document.getElementById("flow").innerHTML = `
+      <div class="node">Staked ETH collateral<br><strong class="pos">${usd(agg.staked_eth_deposits_usd)}</strong></div>
+      <div class="arrow">→ borrow →</div>
+      <div class="node">WETH<br><strong>${usd(agg.eth_like_borrow_usd)}</strong></div>
+      <div class="arrow">+</div>
+      <div class="node">USD stables<br><strong>${usd(agg.usd_stable_borrow_usd)}</strong></div>
+      <div class="arrow">→ swap/stake →</div>
+      <div class="node">Loop capacity<br><strong class="acc">${pct(agg.loop_borrow_vs_staked)}</strong></div>
+    `;
+    document.getElementById("flowHint").textContent =
+      "Loop ratio = (WETH + stablecoin borrow) ÷ staked-ETH deposits.";
+  }
+  document.getElementById("flowMode").textContent = wethOnly ? "· WETH only" : "· WETH + stables";
+  document.getElementById("depositMixHint").textContent =
+    `Staked ETH share of deposits: ${pct(agg.staked_eth_deposits_usd / agg.total_deposits_usd)} · Other collateral: ${usd(agg.non_staked_deposits_usd)}`;
+}
+
+function renderCharts() {
+  const users = DATA.users;
+  const agg = modeAggregate(users);
+  const borrowKey = wethOnly ? "weth_borrow_usd" : "recyclable_borrow_usd";
+  const borrowLabel = wethOnly ? "WETH borrowed" : "WETH+stables borrowed";
+
+  document.getElementById("top20Title").textContent =
+    `Top 20 — staked ETH vs ${wethOnly ? "WETH" : "WETH+stables"} borrow`;
+  document.getElementById("pieTitle").textContent =
+    wethOnly ? "Borrow composition (stables excluded)" : "Borrow composition";
+  document.getElementById("bucketTitle").textContent =
+    `Users by ${wethOnly ? "WETH" : "full"} loop ratio`;
+  document.getElementById("scatterTitle").textContent =
+    `Scatter — staked ETH vs ${wethOnly ? "WETH" : "WETH+stables"} borrow`;
+
+  const top = [...users]
+    .sort((a, b) => b.staked_eth_deposits_usd - a.staked_eth_deposits_usd)
+    .slice(0, 20);
+
+  destroyChart("top20");
+  charts.top20 = new Chart(document.getElementById("top20Chart"), {
+    type: "bar",
+    data: {
+      labels: top.map((d) => shortAddr(d.user)),
+      datasets: [
+        { label: "Staked ETH deposits", data: top.map((d) => d.staked_eth_deposits_usd / 1e6), backgroundColor: "#3d9cf0" },
+        { label: borrowLabel, data: top.map((d) => d[borrowKey] / 1e6), backgroundColor: "#3ecf8e" },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { maxRotation: 60, minRotation: 40 }, grid: { color: "#2a3340" } },
+        y: { title: { display: true, text: "USD (millions)" }, grid: { color: "#2a3340" } },
+      },
+      plugins: { legend: { position: "bottom" } },
+    },
+  });
+
+  const comp = borrowComposition();
+  const colors = ["#3d9cf0", "#3ecf8e", "#e6b450", "#f07178", "#9b8cff", "#5ec8c8", "#c5d0dc", "#6b7c8f"];
+  destroyChart("pie");
+  charts.pie = new Chart(document.getElementById("borrowPie"), {
+    type: "doughnut",
+    data: {
+      labels: comp.map(([s]) => s),
+      datasets: [{ data: comp.map(([, v]) => v), backgroundColor: colors, borderColor: "#171d25", borderWidth: 2 }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: { callbacks: { label: (c) => `${c.label}: ${usd(c.raw)}` } },
+      },
+    },
+  });
+
+  const buckets = loopBuckets(users);
+  const labels = Object.keys(buckets);
+  destroyChart("bucket");
+  charts.bucket = new Chart(document.getElementById("bucketChart"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "# wallets", data: labels.map((k) => buckets[k]), backgroundColor: "#3d9cf0" }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: {
+          title: { display: true, text: wethOnly ? "WETH borrow ÷ staked ETH" : "WETH+stables ÷ staked ETH" },
+          grid: { color: "#2a3340" },
+        },
+        y: { title: { display: true, text: "Wallets" }, grid: { color: "#2a3340" }, ticks: { precision: 0 } },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+
+  destroyChart("scatter");
+  charts.scatter = new Chart(document.getElementById("scatterChart"), {
+    type: "scatter",
+    data: {
+      datasets: [{
+        label: "Wallet",
+        data: users.map((u) => ({
+          x: u.staked_eth_deposits_usd / 1e6,
+          y: activeBorrow(u) / 1e6,
+          user: u.user,
+        })),
+        backgroundColor: "rgba(61,156,240,0.55)",
+        borderColor: "#3d9cf0",
+        pointRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { title: { display: true, text: "Staked ETH deposits ($M)" }, grid: { color: "#2a3340" } },
+        y: {
+          title: { display: true, text: wethOnly ? "WETH borrow ($M)" : "WETH+stables borrow ($M)" },
+          grid: { color: "#2a3340" },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (c) => `${shortAddr(c.raw.user)} · staked ${c.raw.x.toFixed(1)}M · borrow ${c.raw.y.toFixed(1)}M`,
+          },
+        },
+      },
+    },
+  });
+
+  destroyChart("depositMix");
+  charts.depositMix = new Chart(document.getElementById("depositMixChart"), {
+    type: "doughnut",
+    data: {
+      labels: ["Staked ETH LSTs/LRTs", "Other deposits"],
+      datasets: [{
+        data: [agg.staked_eth_deposits_usd, agg.non_staked_deposits_usd],
+        backgroundColor: ["#3d9cf0", "#6b7c8f"],
+        borderColor: "#171d25",
+        borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: { callbacks: { label: (c) => `${c.label}: ${usd(c.raw)}` } },
+      },
+    },
+  });
+}
+
+function updateSortHeaders() {
+  document.querySelectorAll("th.sortable").forEach((th) => {
+    const key = th.dataset.key;
+    const active = key === sortKey;
+    th.classList.toggle("active", active);
+    const ind = active ? (sortDir === "asc" ? "▲" : "▼") : "";
+    const label = th.dataset.label || th.textContent.replace(/[▲▼]\s*$/, "").trim();
+    th.dataset.label = label;
+    th.innerHTML = `${label}<span class="sort-ind">${ind}</span>`;
+  });
+}
+
+function renderTable() {
+  let rows = DATA.users.map((u) => ({
+    ...u,
+    active_loop_borrow: activeBorrow(u),
+    active_loop_ratio: activeLoopRatio(u),
+  }));
+  if (filter) {
+    const q = filter.toLowerCase();
+    rows = rows.filter((u) => u.user.includes(q));
+  }
+  rows.sort((a, b) => {
+    const av = a[sortKey];
+    const bv = b[sortKey];
+    if (typeof av === "string" || typeof bv === "string") {
+      const cmp = String(av).localeCompare(String(bv));
+      return sortDir === "asc" ? cmp : -cmp;
+    }
+    const diff = (Number(av) || 0) - (Number(bv) || 0);
+    return sortDir === "asc" ? diff : -diff;
+  });
+
+  document.getElementById("rowCount").textContent = `${rows.length} wallets`;
+  updateSortHeaders();
+  const tbody = document.querySelector("#userTable tbody");
+  tbody.innerHTML = rows.map((u, i) => {
+    const sig = signal(u);
+    return `<tr>
+      <td>${i + 1}</td>
+      <td class="mono"><a href="https://etherscan.io/address/${u.user}" target="_blank" rel="noopener">${u.user}</a></td>
+      <td>${usd(u.total_deposits_usd)}</td>
+      <td>${usd(u.total_borrow_usd)}</td>
+      <td>${usd(u.staked_eth_deposits_usd)}</td>
+      <td>${usd(u.weth_borrow_usd)}</td>
+      <td>${usd(u.usd_stable_borrow_usd)}</td>
+      <td>${usd(u.active_loop_borrow)}</td>
+      <td>${pct(u.active_loop_ratio)}</td>
+      <td>${pct(u.ltv_total)}</td>
+      <td><span class="pill ${sig.cls}">${sig.label}</span></td>
+    </tr>`;
+  }).join("");
+}
+
+function refreshAll() {
+  const label = document.getElementById("stablesToggleLabel");
+  label.classList.toggle("on", !wethOnly);
+  document.getElementById("modeLabel").textContent = wethOnly
+    ? "Mode: WETH only"
+    : "Mode: WETH + stablecoins";
+  renderStats(modeAggregate(DATA.users));
+  renderCharts();
+  renderTable();
+}
+
+async function main() {
+  const res = await fetch("./data.json");
+  DATA = await res.json();
+  DATA.users = enrichUsers(DATA.users);
+  document.getElementById("subtitle").textContent =
+    `${DATA.meta.cohort} · Default: WETH-only loop view.`;
+
+  document.getElementById("includeStablesToggle").addEventListener("change", (e) => {
+    wethOnly = !e.target.checked;
+    refreshAll();
+  });
+  document.getElementById("search").addEventListener("input", (e) => {
+    filter = e.target.value.trim();
+    renderTable();
+  });
+  document.querySelectorAll("th.sortable").forEach((th) => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.key;
+      if (sortKey === key) sortDir = sortDir === "asc" ? "desc" : "asc";
+      else {
+        sortKey = key;
+        sortDir = key === "user" ? "asc" : "desc";
+      }
+      renderTable();
+    });
+  });
+
+  refreshAll();
+}
+main().catch((err) => {
+  document.getElementById("subtitle").textContent = "Failed to load data.json — run build_data.py first.";
+  console.error(err);
+});
+</script>
+<script type="module" src="/analytics.js"></script>
+</body>
+</html>
